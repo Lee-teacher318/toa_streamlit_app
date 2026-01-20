@@ -52,38 +52,62 @@ def compute_eq(DF0, a_net):
     return -DF0 / a_net
 
 # ---------------------------------------------------------
-# 사이드바: 슬라이더 UI
+# 페이지 제목 / 방정식
 # ---------------------------------------------------------
-st.sidebar.title("설정값 조절")
-
-st.sidebar.markdown("### 1. ERF (외부 복사강제, W/m²)")
-
-erf_ghg = st.sidebar.slider("GHG ERF", 2.5, 5.0, 3.8, 0.05)
-# min -1.4로 설정 → Total ΔF 최소 0.1 W/m² 보장
-erf_aero = st.sidebar.slider("Aerosol ERF", -1.4, 0.0, -1.1, 0.05)
-erf_surf = st.sidebar.slider("Surface ERF", -0.5, 0.5, -0.2, 0.05)
-erf_contr = st.sidebar.slider("Contrails ERF", 0.0, 0.2, 0.06, 0.01)
-erf_other = st.sidebar.slider("Other ERF", -0.5, 0.5, 0.0, 0.05)
-
-st.sidebar.markdown("### 2. 피드백 계수 α (W/m²/°C)")
-
-aP = st.sidebar.slider("α_P (Planck)", -3.4, -3.0, -3.22, 0.01)
-aWVLR = st.sidebar.slider("α_WV+LR", 1.1, 1.5, 1.3, 0.01)
-aAlb = st.sidebar.slider("α_Albedo", 0.1, 0.6, 0.35, 0.01)
-aCl = st.sidebar.slider("α_Cloud", -0.1, 0.9, 0.42, 0.01)
-aBio = st.sidebar.slider("α_Biogeo", -0.3, 0.3, -0.01, 0.01)
-
-st.sidebar.markdown("### 3. 시간 / 열용량 설정")
-
-C = st.sidebar.slider("열용량 C (W·yr/m²/°C)", 2.0, 50.0, 10.0, 1.0)
-t_end = st.sidebar.slider("모델 적분 기간 t_end (years)", 50, 300, 200, 10)
-t_now = st.sidebar.slider("표시할 시점 t (years)", 0.0, float(t_end), 0.0, 1.0)
-
-# 👉 시간 단순화 경고 문구
-st.sidebar.caption(
-    "⚠️ **주의:** 이 모델에서의 시간은 단순화된 1-box 모형의 시간으로, "
-    "실제 지구가 평형에 도달하는 시간과는 큰 오차가 있을 수 있습니다."
+st.title("TOA Energy Balance Explorer")
+st.markdown(
+    f"""
+**TOA 에너지 수지 방정식**  
+\\[
+ΔN = {DF0_U} + α_{{net}} ΔT
+\\]
+"""
 )
+
+# ---------------------------------------------------------
+# 슬라이더: 이제 사이드바가 아니라 본문 상단 expander 안에 배치
+# (모바일에서 그래프를 가리지 않도록)
+# ---------------------------------------------------------
+with st.expander("설정값 조절 (ERF, 피드백, 시간)", expanded=True):
+
+    st.markdown("### 1. ERF (외부 복사강제, W/m²)")
+
+    erf_col1, erf_col2 = st.columns(2)
+    with erf_col1:
+        erf_ghg = st.slider("GHG ERF", 2.5, 5.0, 3.8, 0.05)
+        erf_surf = st.slider("Surface ERF", -0.5, 0.5, -0.2, 0.05)
+        erf_other = st.slider("Other ERF", -0.5, 0.5, 0.0, 0.05)
+    with erf_col2:
+        # min -1.4로 설정 → Total ΔF 최소 0.1 W/m² 보장
+        erf_aero = st.slider("Aerosol ERF", -1.4, 0.0, -1.1, 0.05)
+        erf_contr = st.slider("Contrails ERF", 0.0, 0.2, 0.06, 0.01)
+
+    st.markdown("### 2. 피드백 계수 α (W/m²/°C)")
+
+    fb_col1, fb_col2, fb_col3 = st.columns(3)
+    with fb_col1:
+        aP = st.slider("α_P (Planck)", -3.4, -3.0, -3.22, 0.01)
+    with fb_col2:
+        aWVLR = st.slider("α_WV+LR", 1.1, 1.5, 1.3, 0.01)
+        aAlb = st.slider("α_Albedo", 0.1, 0.6, 0.35, 0.01)
+    with fb_col3:
+        aCl = st.slider("α_Cloud", -0.1, 0.9, 0.42, 0.01)
+        aBio = st.slider("α_Biogeo", -0.3, 0.3, -0.01, 0.01)
+
+    st.markdown("### 3. 시간 / 열용량 설정")
+
+    time_col1, time_col2 = st.columns(2)
+    with time_col1:
+        C = st.slider("열용량 C (W·yr/m²/°C)", 2.0, 50.0, 10.0, 1.0)
+    with time_col2:
+        t_end = st.slider("모델 적분 기간 t_end (years)", 50, 300, 200, 10)
+
+    t_now = st.slider("표시할 시점 t (years)", 0.0, float(t_end), 0.0, 1.0)
+
+    st.caption(
+        "⚠️ **주의:** 이 모델에서의 시간은 단순화된 1-box 모형의 시간으로, "
+        "실제 지구가 평형에 도달하는 시간과는 큰 오차가 있을 수 있습니다."
+    )
 
 # ---------------------------------------------------------
 # 파라미터 계산
@@ -101,26 +125,13 @@ N_now = N_ts[idx_now]
 DT_eq = compute_eq(DF0, a_net)
 
 # ---------------------------------------------------------
-# 페이지 레이아웃
+# 레이아웃: 위쪽은 그래프들, 오른쪽은 요약 / 수업 아이디어
 # ---------------------------------------------------------
-st.title("TOA Energy Balance Explorer")
-st.markdown(
-    f"""
-**TOA 에너지 수지 방정식**  
-\\[
-ΔN = {DF0_U} + α_{{net}} ΔT
-\\]
-"""
-)
-
 col_fig, col_info = st.columns([2.2, 1.1])
 
-# ---------------------------------------------------------
-# 왼쪽: 그림(ΔN–ΔT + 막대그래프들)
-# ---------------------------------------------------------
 with col_fig:
     fig = plt.figure(figsize=(10, 7))
-    # 👉 레이아웃 변경: 1줄째 그래프 전체, 2줄째 막대그래프 2개
+    # 1줄: ΔN–ΔT 전체, 2줄: 막대그래프 2개
     gs = gridspec.GridSpec(
         2, 2,
         height_ratios=[2.2, 1.8],
@@ -128,7 +139,7 @@ with col_fig:
         wspace=0.35
     )
 
-    # 1) ΔN–ΔT (1줄 전체 차지)
+    # 1) ΔN–ΔT (1줄 전체)
     ax_NT = fig.add_subplot(gs[0, :])
 
     ax_NT.plot(
@@ -185,9 +196,6 @@ with col_fig:
 
     st.pyplot(fig)
 
-# ---------------------------------------------------------
-# 오른쪽: 숫자 요약 + 수업 아이디어
-# ---------------------------------------------------------
 with col_info:
     st.subheader("현재 설정 요약")
 
